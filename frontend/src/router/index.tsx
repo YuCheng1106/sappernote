@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import Homepage from "../pages/home";
 import NotebookPage from "../pages/notebook";
-import WorkspacePage from "../pages/workspace/workspace.tsx";
+import PlaygroundPage from "../pages/playground";
+
 // import LayoutContainer from "../components/layout";
 function AppRouter() {
     return (
@@ -16,7 +17,7 @@ function AppRouter() {
                             {/* 各个管理页面 */}
                             <Route path="notebook" element={<NotebookPage />} />
 
-                            <Route path="workspace" element={<WorkspacePage />} />
+                            <Route path="playground" element={<PlaygroundPage />} />
 
                         {/*</Route>*/}
                     </>
