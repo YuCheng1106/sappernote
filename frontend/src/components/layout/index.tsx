@@ -4,7 +4,7 @@ import CustomHeader from "../customHeader";
 import { Outlet } from 'react-router-dom';
 import { FileSearchOutlined, PlusSquareOutlined, BorderOutlined, FilePdfOutlined, FileWordOutlined, LinkOutlined } from '@ant-design/icons';
 import logoImage from '../../assets/images/favicon.ico';
-
+import AddFileModal from "../modal/addFileModal";
 const { Content, Sider } = Layout;
 
 interface LayoutContainerProps {
@@ -56,6 +56,7 @@ const getIconByType = (type: string) => {
 const LayoutContainer: React.FC<LayoutContainerProps> = ({ children }) => {
     const [collapsed, setCollapsed] = useState(false);
     const [isFileContentVisible, setIsFileContentVisible] = useState(false);
+    const [isAddFileModalVisible, setIsAddFileModalVisible] = useState(false);
     const [selectedFile, setSelectedFile] = useState<FileData | null>(null);
 
     const onCollapse = (collapsed: boolean) => {
@@ -87,7 +88,7 @@ const LayoutContainer: React.FC<LayoutContainerProps> = ({ children }) => {
                     padding: "0px 20px"
                 }}>
                     <span>来源</span>
-                    <Button type={"text"} icon={<PlusSquareOutlined />} />
+                    <Button type={"text"} icon={<PlusSquareOutlined />} onClick={() => setIsAddFileModalVisible(true)}/>
                 </div>
                 <div style={{
                     display: !collapsed ? 'flex' : 'none',
@@ -116,6 +117,10 @@ const LayoutContainer: React.FC<LayoutContainerProps> = ({ children }) => {
             >
                 <p>{selectedFile?.content}</p>
             </Drawer>
+            <AddFileModal
+                onCancel={() => setIsAddFileModalVisible(false)}
+                visible={isAddFileModalVisible}
+            />
             <Layout>
                 <CustomHeader />
                 <Content style={{ margin: '16px 10px 0 5px' }}>
