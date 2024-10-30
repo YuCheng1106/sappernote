@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import Homepage from "../pages/home";
 import NotebookPage from "../pages/notebook";
 import WorkspacePage from "../pages/workspace/workspace.tsx";
-import LayoutContainer from "../components/layout";
+// import LayoutContainer from "../components/layout";
 function AppRouter() {
     return (
         <Router>
@@ -12,13 +12,13 @@ function AppRouter() {
                (
                     <>
                         <Route index element={<Homepage />} />
-                        <Route path="/" element={<LayoutContainer />}>
+                        {/*<Route path="/" element={<LayoutContainer />}>*/}
                             {/* 各个管理页面 */}
                             <Route path="notebook" element={<NotebookPage />} />
 
                             <Route path="workspace" element={<WorkspacePage />} />
 
-                        </Route>
+                        {/*</Route>*/}
                     </>
                 )
             </Routes>
