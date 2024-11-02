@@ -1,5 +1,5 @@
 import React, {ReactNode, useEffect, useState} from 'react';
-import {Layout, Menu, Image, Button, Drawer, Checkbox} from 'antd';
+import {Layout, Menu, Image, Button, Drawer, Checkbox, Modal, message} from 'antd';
 import { DeleteOutlined, FileSearchOutlined, PlusSquareOutlined, FilePdfOutlined, FileWordOutlined, LinkOutlined } from '@ant-design/icons';
 import CustomHeader from "../customHeader";
 import {Outlet, useNavigate} from 'react-router-dom';
@@ -50,8 +50,6 @@ const LayoutContainer: React.FC<{ children?: ReactNode }> = ({ children }) => {
         setSelectedSources((prev) => {
             const newSet = new Set(prev);
             newSet.has(sourceId) ? newSet.delete(sourceId) : newSet.add(sourceId);
-            const selectedSourcesIds = Array.from(newSet);
-            modifyNotebookSourcesSelect(selectedSourcesIds)
             return newSet;
         });
     };
@@ -73,9 +71,27 @@ const LayoutContainer: React.FC<{ children?: ReactNode }> = ({ children }) => {
         }
     }, [notebook, modifyNotebookSourcesSelect]);
 
+    useEffect(() => {
+        const selectedSourcesIds = Array.from(selectedSources);
+        modifyNotebookSourcesSelect(selectedSourcesIds)
+    }, [selectedSources, modifyNotebookSourcesSelect]);
+
     const handleDeleteSource = async (sourceId: number) => {
-        await removeNoteSources({pk :[sourceId]})
-        handleSelectSource(sourceId);
+        Modal.confirm({
+            title: '确认删除',
+            content: '确定要删除此来源吗？此操作无法撤销。',
+            okText: '确认',
+            cancelText: '取消',
+            onOk: async () => {
+                try {
+                    await removeNoteSources({ pk: [sourceId] });
+                    handleSelectSource(sourceId);
+                    message.success('来源已成功删除');
+                } catch (error) {
+                    message.error('删除失败，请稍后重试');
+                }
+            },
+        });
     };
 
     return (

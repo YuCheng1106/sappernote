@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str
     REDIS_DATABASE: int
 
+    # Env Openai
+    OPENAI_KEY: str
+    OPENAI_BASE_URL: str
+    OPENAI_MODEL: str
+
     # Env Token
     TOKEN_SECRET_KEY: str  # 密钥 secrets.token_urlsafe(32)
 

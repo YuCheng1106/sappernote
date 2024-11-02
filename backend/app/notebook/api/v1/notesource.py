@@ -8,15 +8,18 @@ from fastapi import APIRouter, Depends, Path, Query, Request, Body
 from fastapi import APIRouter, Depends, UploadFile, File
 from pydantic import Field
 
+from backend.app.notebook.schema.embedding import CreateEmbeddingParam
 from backend.app.notebook.schema.notesource import CreateNoteSourceParam, GetNoteSourceListDetails, UpdateNoteSourceParam
 from backend.app.notebook.service.notesource_service import note_source_service
+from backend.app.notebook.service.embedding_service import embedding_service
 from backend.common.pagination import DependsPagination, paging_data
 from backend.common.response.response_schema import ResponseModel, response_base
 from backend.common.security.jwt import DependsJwtAuth
 from backend.database.db_mysql import CurrentSession
 from backend.utils.serializers import select_as_dict, select_list_serialize
-from sapperrag import DocumentReader
-
+from sapperrag import DocumentReader, TextFileChunker, ChunkEmbedder
+from sapperrag.embedding import OpenAIEmbedding
+from backend.core.conf import settings
 router = APIRouter()
 
 
@@ -85,7 +88,12 @@ async def create_source(
         local_file_reader = DocumentReader()
 
         read_result = local_file_reader.read(temp_dir)
-
+        text_file_chunker = TextFileChunker()
+        chunk_result = text_file_chunker.chunk(read_result)
+        embeder = OpenAIEmbedding(settings.OPENAI_KEY, settings.OPENAI_BASE_URL, "text-embedding-3-small")
+        # embeder = LocalModelEmbedding("D:\workplace\\agentdy\\app\common\RAGModuleBase\embedding\model")
+        chunk_embedder = ChunkEmbedder(embeder)
+        embed_result = chunk_embedder.embed(chunk_result)
         # Prepare data for creating a new source
         obj = CreateNoteSourceParam(
             uuid=str(uuid.uuid4()),
@@ -95,10 +103,17 @@ async def create_source(
             url=None,
             active=active
         )
-
-    # Step 3: Create note source
-    note_source = await note_source_service.create(obj=obj)
-    await note_source_service.update_source_notebooks(pk=note_source.id, notebook_ids=[pk])
+        # Step 3: Create note source
+        note_source = await note_source_service.create(obj=obj)
+        await note_source_service.update_source_notebooks(pk=note_source.id, notebook_ids=[pk])
+        for embed in embed_result:
+            obj = CreateEmbeddingParam(
+                uuid=str(uuid.uuid4()),
+                content=embed.text,  # Assuming read_result is the file content you need
+                embedding=await embedding_service.encode_embedding(embed.text_embedding),
+                notesource_id=note_source.id
+            )
+            await embedding_service.create(obj=obj)
     data = GetNoteSourceListDetails(**select_as_dict(note_source))
     return response_base.success(data=data)
 

@@ -18,3 +18,7 @@ class NoteSource(Base):
     notebooks: Mapped[list['Notebook']] = relationship(
         secondary=note_book_source, back_populates='source', init=False
     )
+
+    # One-to-many relationship with Embedding
+    embeddings: Mapped[list['Embedding']] = relationship("Embedding", back_populates="note_source",
+                                                         cascade="all, delete-orphan", default_factory=list)

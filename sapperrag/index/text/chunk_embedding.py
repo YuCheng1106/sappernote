@@ -15,7 +15,7 @@ class ChunkEmbedder:
 
     def embed_chunks(self, text):
         response = self.text_embeder.embed(text)
-        attribute_vector = np.array(response)
+        attribute_vector = np.array(response, dtype=np.float32)
         return attribute_vector
 
     def embed(self, chunks: List[TextChunk]):

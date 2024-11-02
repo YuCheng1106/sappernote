@@ -1,14 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import LayoutContainer from '../../components/layout';
-import {Button, Card, Input, List, Checkbox, Modal} from 'antd';
-import { FileOutlined, CheckOutlined, CloseOutlined, BookOutlined, CompassOutlined, SendOutlined, DeleteOutlined } from '@ant-design/icons';
+import {Button, Card, Input, List, Checkbox, Modal, message} from 'antd';
+import { FileOutlined, CheckOutlined, CloseOutlined, BookOutlined, SendOutlined, DeleteOutlined, ClearOutlined} from '@ant-design/icons';
 import Conservation from '../../components/conservation';
 import NoteAssistant from '../../components/noteAssistant';
 import { useDispatchNotebook, useNotebookSelector, useDispatchNote } from '../../hooks';
 import { NoteReq } from '../../api/note';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import {ClientChatController} from "../../service/websocketService.ts";
+import remarkGfm from "remark-gfm";
+import ReactMarkdown from "react-markdown";
+
+interface Message {
+    role: 'user' | 'assistant' | 'progress' | 'error';
+    content: string;
+}
+
 
 const NotebookPage: React.FC = () => {
     const { uuid } = useParams<{ uuid: string }>();
@@ -23,6 +32,25 @@ const NotebookPage: React.FC = () => {
     const { addNewNote, removeNote, updateNote } = useDispatchNote();
     const notebook = useNotebookSelector((state) => state.notebook.notebookDetails);
     const selectSource = useNotebookSelector((state) => state.notebook.selectSource);
+    const [inputValue, setInputValue] = useState<string>('');
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [clientController, setClientController] = useState<ClientChatController | null>(null);
+
+    useEffect(() => {
+        if(selectSource.length ==0)
+            return;
+        const controller = new ClientChatController(
+            setMessages,
+            selectSource,
+            Array.from(selectedNotes)
+        );
+
+        setClientController(controller);
+
+        return () => {
+            controller.close();
+        };
+    }, [selectSource]);
 
     useEffect(() => {
         if (uuid) {
@@ -72,9 +100,23 @@ const NotebookPage: React.FC = () => {
     };
 
     const handleDeleteNotes = async () => {
-        const selectedNoteIds = Array.from(selectedNotes);
-        await removeNote({ pk: selectedNoteIds });
-        setSelectedNotes(new Set());
+        Modal.confirm({
+            title: '确认删除',
+            content: '确定要删除此笔记吗？此操作无法撤销。',
+            okText: '确认',
+            cancelText: '取消',
+            onOk: async () => {
+                try {
+                    const selectedNoteIds = Array.from(selectedNotes);
+                    await removeNote({ pk: selectedNoteIds });
+                    setSelectedNotes(new Set());
+                    message.success('笔记已成功删除');
+                } catch (error) {
+                    message.error('删除失败，请稍后重试');
+                }
+            },
+        });
+
     };
 
     const handleCardClick = (noteId: number, noteContent: string) => {
@@ -88,6 +130,48 @@ const NotebookPage: React.FC = () => {
             await updateNote(currentNoteId, { content: currentNoteContent });
             setIsModalOpen(false);
         }
+    };
+
+    const handleSendMessage = () => {
+        if (inputValue.trim() === '') return;
+
+        const userMessage: Message = { role: 'user', content: inputValue };
+        const query = [...messages, userMessage];
+        setMessages((prevMessages) => [...prevMessages, userMessage]);
+        clientController?.sendMessage(query);
+
+        setInputValue('');
+    };
+
+    const handleSuggestionClick = (inputValue: string) => {
+        const userMessage: Message = { role: 'user', content: inputValue };
+        const query = [...messages, userMessage];
+        setMessages((prevMessages) => [...prevMessages, userMessage]);
+        clientController?.sendMessage(query);
+    };
+
+    const handleNoteMerge = async () => {
+        if (!notebook || !notebook.notes || selectedNotes.size === 0) return;
+
+        // 获取选中笔记的内容
+        const content = notebook.notes
+            .filter(note => selectedNotes.has(note.id))
+            .map(note => note.content)
+            .join('\n\n'); // 合并笔记内容，以换行符分隔
+
+        // 创建新的笔记对象
+        const newNote: NoteReq = {
+            type: 'remark',
+            content: content, // 设置合并后的内容
+            title: '合并的笔记' // 或者自定义标题
+        };
+
+        // 添加新笔记到笔记本中
+        await addNewNote(notebook.id, newNote);
+    };
+
+    const handleChatClear = async () => {
+        setMessages([])
     };
 
     return (
@@ -117,8 +201,14 @@ const NotebookPage: React.FC = () => {
                                                 onChange={() => handleSelectNote(item.id)}
                                             />}
                                         >
-                                            <div style={{ height: '300px', overflowY: 'hidden'}} onClick={() => handleCardClick(item.id, item.content || '')}>
-                                                <div dangerouslySetInnerHTML={{ __html: item.content }}/>
+                                            <div style={{ height: '240px', overflowY: 'hidden'}} onClick={() => handleCardClick(item.id, item.content || '')}>
+                                                <ReactMarkdown
+                                                    children={item.content}
+                                                    remarkPlugins={[remarkGfm]}
+                                                    components={{
+                                                        p: ({children }) => <p style={{ marginBottom: '10px' }}>{children}</p>,
+                                                    }}
+                                                />
                                             </div>
                                         </Card>
                                     </div>
@@ -145,7 +235,7 @@ const NotebookPage: React.FC = () => {
                         <NoteAssistant />
                     </div>
                     <div style={{ width: '100%', textAlign: 'center', maxWidth: '900px', display: isConservationVisible ? 'block' : 'none', flexGrow: 1, overflowY: 'hidden'}}>
-                        <Conservation />
+                        <Conservation messages={messages}/>
                     </div>
 
                     <div
@@ -161,11 +251,11 @@ const NotebookPage: React.FC = () => {
                         }}
                     >
                         {selectedNotes.size !== 0 && <div style={{paddingBottom: '10px'}}>
-                            <Button style={{marginRight: "10px"}}>帮我理解</Button>
-                            <Button style={{marginRight: "10px"}}>评论</Button>
-                            <Button style={{marginRight: "10px"}}>推荐相关想法</Button>
-                            <Button style={{marginRight: "10px"}}>创建大纲</Button>
-                            {selectedNotes.size >= 2 && <Button style={{marginRight: "10px"}}>合并到笔记</Button>}
+                            <Button style={{marginRight: "10px"}} onClick={() => handleSuggestionClick("帮我理解")}>帮我理解</Button>
+                            <Button style={{marginRight: "10px"}} onClick={() => handleSuggestionClick("评论")}>评论</Button>
+                            <Button style={{marginRight: "10px"}} onClick={() => handleSuggestionClick("推荐相关想法")}>推荐相关想法</Button>
+                            <Button style={{marginRight: "10px"}} onClick={() => handleSuggestionClick("创建大纲")}>创建大纲</Button>
+                            {selectedNotes.size >= 2 && <Button style={{marginRight: "10px"}} onClick={handleNoteMerge}>合并到笔记</Button>}
                         </div>}
                         <div
                             style={{
@@ -187,16 +277,20 @@ const NotebookPage: React.FC = () => {
                                     backgroundColor: '#E3E8EE'
                                 }}
                             >
-                                <div style={{ width: '100px' }}>{selectSource.length} 个来源</div>
+                                <div style={{ width: '100px' }}> {selectedNotes.size === 0 ? `${selectSource.length} 个来源` : `${selectedNotes.size} 条备注`}</div>
+
                                 <Input.TextArea
                                     placeholder="输入笔记..."
                                     autoSize={{ minRows: 1, maxRows: 8 }}
                                     style={{ width: '100%', height: '80px' }}
                                     variant={"borderless"}
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
                                 />
-                                <Button type="text" size="large" icon={<SendOutlined />} />
+                                <Button type="text" size="large" icon={<SendOutlined />} onClick={handleSendMessage} />
                             </div>
-                            <Button type="text" icon={<CompassOutlined />} onClick={() => toggleModal('notebook')}>笔记本助手</Button>
+                            {/*<Button type="text" icon={<CompassOutlined />} onClick={() => toggleModal('notebook')}>笔记本助手</Button>*/}
+                            <Button type="text" icon={<ClearOutlined />} onClick={handleChatClear}>清空对话</Button>
                         </div>
                     </div>
                 </div>

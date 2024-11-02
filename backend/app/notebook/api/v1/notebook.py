@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import json
 import uuid
 from typing import Annotated
-
+from fastapi import WebSocket
 from fastapi import APIRouter, Depends, Path, Query, Request, Body
 
 from backend.app.notebook.schema.notebook import CreateNotebookParam, GetNotebookListDetails, UpdateNotebookParam
+from backend.app.notebook.service.chat_service import ChatService
 from backend.app.notebook.service.notebook_service import notebook_service
 from backend.common.pagination import DependsPagination, paging_data
 from backend.common.response.response_schema import ResponseModel, response_base
@@ -123,3 +125,24 @@ async def delete_notebooks(pk: Annotated[list[int], Query(...)]) -> ResponseMode
     if count > 0:
         return response_base.success()
     return response_base.fail()
+
+
+@router.websocket("/ws/ClientLLMResponse")
+async def chat_websocket(websocket: WebSocket):
+    # 获取 WebSocket 连接中的 `source` 参数
+    source_param = websocket.query_params.get("source")
+    source = source_param.split(",") if source_param else []
+
+    notes_param = websocket.query_params.get("notes")
+    notes = notes_param.split(",") if notes_param else []
+    chat_service = ChatService(source, notes)
+    await chat_service.initialize_sources()
+    await websocket.accept()
+
+    while True:
+        data = await websocket.receive_text()
+
+        # 处理消息，并可根据 source 参数的值执行不同的逻辑
+        result = await chat_service.process_message(json.loads(data))
+
+        await websocket.send_text(result)

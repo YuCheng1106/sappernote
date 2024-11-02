@@ -54,8 +54,9 @@ async def get_pagination_notes(
     summary='创建笔记'
 )
 async def create_note(
-        pk: Annotated[int, Path(...)],
-        type: str = Body(..., embed=True, description="文件类型，例如 'pdf', 'word', 'url'"),
+    pk: Annotated[int, Path(...)],
+    type: str = Body(..., embed=True, description="文件类型，例如 'pdf', 'word', 'url'"),
+    content: str = Body('', embed=True, description="笔记内容"),
 ) -> ResponseModel:
     """
     上传文件并创建笔记。
@@ -69,7 +70,7 @@ async def create_note(
     obj = CreateNoteParam(
         title="",
         uuid=str(uuid.uuid4()),
-        content="",
+        content=content,
         type=type,
         active=True
     )

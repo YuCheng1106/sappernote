@@ -53,3 +53,14 @@ CREATE TABLE note_book_note (
     FOREIGN KEY (notebook_id) REFERENCES notebook(id) ON DELETE CASCADE,
     FOREIGN KEY (note_id) REFERENCES note(id) ON DELETE CASCADE
 );
+
+CREATE TABLE embedding (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    notesource_id INT,
+    uuid VARCHAR(64) UNIQUE,
+    content TEXT,
+    embedding TEXT,
+    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (notesource_id) REFERENCES notesource(id) ON DELETE CASCADE
+);
