@@ -1,34 +1,22 @@
-import React, { useState } from 'react';
-import { Button, Card, Divider, Dropdown, Space, Table, Typography } from 'antd';
+import React, {useEffect, useState} from 'react';
+import {Button, Card, Divider, Dropdown, Space, Table, Typography} from 'antd';
 import type { MenuProps, TableColumnsType } from 'antd';
-import { PlusOutlined, AppstoreOutlined, BarsOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
-
+import {
+    PlusOutlined,
+    AppstoreOutlined,
+    BarsOutlined,
+    SettingOutlined,
+    UserOutlined,
+    MoreOutlined,
+    DeleteOutlined,
+    EditOutlined,
+    FileOutlined
+} from '@ant-design/icons';
+import { useDispatchNotebook, useNotebookSelector } from '../../hooks';
+import {NotebookRes, NotebookSourceRes} from "../../api/notebook";
+import {useNavigate} from "react-router-dom";
 const { Title } = Typography;
 
-const notesData = [
-    {
-        id: '1',
-        title: '人物画像',
-        date: '2024年10月29日',
-        sources: 5,
-        role: '管理员',
-    },
-    {
-        id: '2',
-        title: '历史记录',
-        date: '2024年10月28日',
-        sources: 3,
-        role: '编辑',
-    },
-];
-
-interface DataType {
-    id: string;
-    title: string;
-    sources: number;
-    date: string;
-    role: string;
-}
 
 // Dropdown 的菜单项
 const viewMenuItems: MenuProps['items'] = [
@@ -47,38 +35,63 @@ const viewMenuItems: MenuProps['items'] = [
 ];
 
 // 定义表格的列
-const columns: TableColumnsType<DataType> = [
+const columns: TableColumnsType<NotebookRes> = [
     {
         title: '标题',
         dataIndex: 'title',
         key: 'title',
+        render: (title: string) => title,
     },
     {
         title: '来源',
-        dataIndex: 'sources',
-        key: 'sources',
-        render: (sources: number) => `${sources} 个来源`,
+        dataIndex: 'source',
+        key: 'source',
+        render: (source: NotebookSourceRes[]) => `${source?.length} 个来源`,
     },
     {
         title: '创建日期',
-        dataIndex: 'date',
-        key: 'date',
-    },
-    {
-        title: '角色',
-        dataIndex: 'role',
-        key: 'role',
-    },
+        dataIndex: 'created_time',
+        key: 'created_time',
+    }
 ];
 
 const PlaygroundPage: React.FC = () => {
     // 俩种 view 一个是卡片视图 一个是文件表格列表
     const [isCardView, setIsCardView] = useState(true);
+    const { getAllNotebooks } = useDispatchNotebook();
+    const notebooks = useNotebookSelector((state) => state.notebook.notebooks);
+    const navigate = useNavigate();
+    useEffect(() => {
+        getAllNotebooks();
+    }, [getAllNotebooks]);
 
     // 切换视图的函数
     const toggleView = () => {
         setIsCardView(!isCardView);
     };
+
+    const items: MenuProps['items'] = [
+        {
+            key: '1',
+            label: (
+                <Button icon={<DeleteOutlined />} type={"text"}>
+                    删除
+                </Button>
+            ),
+        },
+        {
+            key: '2',
+            label: (
+                <Button icon={<EditOutlined />} type={"text"}>
+                    修改标题
+                </Button>
+            ),
+        }
+    ];
+
+    const handleNotebookClick = (uuid: string) => {
+        navigate('/notebook/' + uuid);
+    }
 
     return (
         <div style={{ padding: '24px' }}>
@@ -110,30 +123,29 @@ const PlaygroundPage: React.FC = () => {
 
             {/* 根据 isCardView 的状态显示不同的视图 */}
             {isCardView ? (
-                <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-                    {notesData.map(note => (
+                <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
+                    {notebooks.map(note => (
                         <Card
                             key={note.id}
                             style={{ borderRadius: '10px' }}
-                            cover={
-                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px' }}>
-                                    <AppstoreOutlined style={{ fontSize: '48px' }} />
-                                </div>
+                            title={<FileOutlined/>}
+                            hoverable={true}
+                            onClick={() => {handleNotebookClick(note.uuid)}}
+                            extra={
+                                <Dropdown menu={{items}} trigger={['hover']}>
+                                    <Button type="text" icon={<MoreOutlined />} />
+                                </Dropdown>
                             }
-                            actions={[
-                                <span key="edit">编辑</span>,
-                                <span key="delete">删除</span>,
-                            ]}
                         >
                             <Card.Meta
-                                title={note.title}
-                                description={`${note.date} · ${note.sources} 个来源`}
+                                title={<h3>{note.title}</h3>}
+                                description={`${note.created_time} · ${note.source?.length} 个来源`}
                             />
                         </Card>
                     ))}
                 </div>
             ) : (
-                <Table columns={columns} dataSource={notesData} rowKey="id" style={{ marginTop: '24px' }} />
+                <Table columns={columns} dataSource={notebooks} rowKey="id" style={{ marginTop: '24px' }} />
             )}
         </div>
     );

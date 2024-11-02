@@ -1,0 +1,9 @@
+.menu-item-with-delete .delete-icon {
+    display: none;
+    color: red;
+    cursor: pointer;
+}
+
+.menu-item-with-delete:hover .delete-icon {
+    display: inline;
+}
