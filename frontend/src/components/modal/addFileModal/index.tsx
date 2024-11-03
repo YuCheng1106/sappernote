@@ -3,7 +3,7 @@ import { Modal, Form, Input, Select, Upload, Progress, message } from 'antd';
 import { UploadOutlined, LinkOutlined, FileTextOutlined } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
 import type { RcFile } from 'rc-upload/lib/interface';
-import {useDispatchNoteSource, useNotebookSelector} from '../../../hooks';
+import { useDispatchNoteSource, useNotebookSelector } from '../../../hooks';
 
 const { Option } = Select;
 
@@ -14,12 +14,13 @@ interface AddFileModalProps {
 
 const AddFileModal: React.FC<AddFileModalProps> = ({ visible, onCancel }) => {
     const [form] = Form.useForm();
-
     const [sourceType, setSourceType] = useState<string>('docs');
     const [fileList, setFileList] = useState<RcFile[]>([]);
+    const [loading, setLoading] = useState(false);
     const maxSources = 50;
     const { addNewNoteSource } = useDispatchNoteSource();
     const notebook = useNotebookSelector((state) => state.notebook.notebookDetails);
+
     // Handle form submission
     const handleSubmit = async () => {
         try {
@@ -27,19 +28,27 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ visible, onCancel }) => {
             const values = await form.validateFields();
 
             if (sourceType === 'docs' && fileList.length > 0) {
-                // Dispatch the FormData with the file and metadata
-                await addNewNoteSource( notebook.id, {file: fileList[0], file_type: values});
-                message.success('文件上传成功');
+                setLoading(true);  // 开启加载提示
+                message.loading({ content: '文件上传中...', key: 'uploading' });
+
+                for (let i = 0; i < fileList.length; i++) {
+                    await addNewNoteSource(notebook.id, { file: fileList[i], file_type: values });
+                    message.success({ content: `文件 ${i + 1}/${fileList.length} 上传成功`, key: 'uploading', duration: 2 });
+                }
+
+                message.success({ content: '所有文件上传成功', key: 'uploading', duration: 2 });
             } else {
                 message.error('请上传文件');
             }
 
-            onCancel(); // Close the modal
-            form.resetFields(); // Reset form fields
-            setSourceType('docs'); // Reset source type
-            setFileList([]); // Reset file list
+            onCancel(); // 关闭模态框
+            form.resetFields();
+            setSourceType('docs');
+            setFileList([]);
         } catch (error) {
             message.error('请填写完整的表单');
+        } finally {
+            setLoading(false); // 关闭加载提示
         }
     };
 
@@ -53,7 +62,7 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ visible, onCancel }) => {
                 message.warning(`最多只能上传 ${maxSources} 个文件`);
                 return Upload.LIST_IGNORE;
             }
-            setFileList([file]);
+            setFileList([...fileList, file]);
             return false;
         },
         onRemove: () => setFileList([]),
@@ -72,13 +81,11 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ visible, onCancel }) => {
             onOk={handleSubmit}
             okText="提交"
             cancelText="取消"
+            confirmLoading={loading}  // 按钮加载状态
             width="80%"
         >
             <Form layout="vertical" form={form}>
-                <Form.Item
-                    label="选择来源类型"
-                    name="sourceType"
-                >
+                <Form.Item label="选择来源类型" name="sourceType">
                     <Select
                         placeholder="选择来源类型"
                         style={{ width: '100%' }}
@@ -97,13 +104,8 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ visible, onCancel }) => {
                     </Select>
                 </Form.Item>
 
-                {/* Conditional form fields based on selected source type */}
                 {sourceType === 'docs' && (
-                    <Form.Item
-                        label="上传文件"
-                        name="fileUpload"
-                        rules={[{ required: true, message: '请上传文件' }]}
-                    >
+                    <Form.Item label="上传文件" name="fileUpload" rules={[{ required: true, message: '请上传文件' }]}>
                         <Upload.Dragger {...uploadProps}>
                             <p className="ant-upload-drag-icon">
                                 <UploadOutlined />
@@ -115,26 +117,17 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ visible, onCancel }) => {
                 )}
 
                 {sourceType === 'link' && (
-                    <Form.Item
-                        label="网站链接"
-                        name="websiteLinks"
-                        rules={[{ required: true, message: '请输入网站链接' }]}
-                    >
+                    <Form.Item label="网站链接" name="websiteLinks" rules={[{ required: true, message: '请输入网站链接' }]}>
                         <Input.TextArea rows={4} placeholder="输入网站链接，以分号 ';' 分隔多个链接" />
                     </Form.Item>
                 )}
 
                 {sourceType === 'text' && (
-                    <Form.Item
-                        label="粘贴文本"
-                        name="pastedText"
-                        rules={[{ required: true, message: '请粘贴文本内容' }]}
-                    >
+                    <Form.Item label="粘贴文本" name="pastedText" rules={[{ required: true, message: '请粘贴文本内容' }]}>
                         <Input.TextArea rows={4} placeholder="粘贴文本内容" />
                     </Form.Item>
                 )}
 
-                {/* Progress Indicator for file count */}
                 {sourceType === 'docs' && (
                     <Progress
                         percent={(fileList.length / maxSources) * 100}

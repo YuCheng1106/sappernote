@@ -10,12 +10,14 @@ type SetMessages = React.Dispatch<React.SetStateAction<Message[]>>;
 export class ClientChatController {
     private readonly socket: WebSocket;
     private readonly setMessages: SetMessages;
-
+    private readonly messages: Message[];
     constructor(
+        messages: Message[],
         setMessages: SetMessages,
         source: number[],
         notes: number[]
     ) {
+        this.messages = messages;
         this.setMessages = setMessages;
         this.socket = new WebSocket(`${url}api/v1/notebook/ws/ClientLLMResponse?source=${source}&notes=${notes}`);
         this.initializeWebSocket();
@@ -24,6 +26,7 @@ export class ClientChatController {
     private initializeWebSocket(): void {
         this.socket.addEventListener('open', () => {
             console.log('WebSocket connection opened');
+            this.sendMessage(this.messages)
         });
 
         this.socket.addEventListener('message', (event: MessageEvent) => {
@@ -48,6 +51,8 @@ export class ClientChatController {
                     errorMessage,
                 ]);
                 console.error('Error parsing message:', error);
+            } finally {
+                this.socket.close();
             }
         });
 

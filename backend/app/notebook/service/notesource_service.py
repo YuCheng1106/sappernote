@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from typing import Sequence
-
+import os
+import uuid
+from tempfile import TemporaryDirectory
+from typing import Sequence, List
+from fastapi import UploadFile
 from sqlalchemy import Select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.notebook.crud.crud_notesource import note_source_dao
-from backend.app.notebook.model import NoteSource
+from backend.app.notebook.model import NoteSource, Embedding
+from backend.app.notebook.schema.embedding import CreateEmbeddingParam
 from backend.app.notebook.schema.notesource import CreateNoteSourceParam, UpdateNoteSourceParam
+from backend.app.notebook.service.embedding_service import embedding_service
 from backend.common.exception import errors
+from backend.core.conf import settings
 from backend.database.db_mysql import async_db_session
+from sapperrag import DocumentReader, TextFileChunker, ChunkEmbedder
+from sapperrag.embedding import OpenAIEmbedding
 
 
 class NoteSourceService:
@@ -50,15 +60,52 @@ class NoteSourceService:
         return await note_source_dao.get_list(tittle=tittle, active=active)
 
     @staticmethod
-    async def create(*, obj: CreateNoteSourceParam) -> NoteSource:
-        """
-        创建新的来源
-        """
-        async with async_db_session.begin() as db:
-            source = await note_source_dao.get_by_uuid(db, obj.uuid)
-            if source:
-                raise errors.ForbiddenError(msg='来源已存在')
-            return await note_source_dao.create(db, obj)
+    # 在循环中创建并提交单独的事务
+    async def insert_embeddings(db: AsyncSession, notesource_id: int, embed_result: list) -> None:
+        for embed in embed_result:
+            try:
+                # 使用独立的事务来插入每个嵌入记录，减少锁持有的时间
+                async with db.begin():
+                    obj = CreateEmbeddingParam(
+                        uuid=str(uuid.uuid4()),
+                        content=embed.text,
+                        embedding=await embedding_service.encode_embedding(embed.text_embedding),
+                        notesource_id=notesource_id
+                    )
+                    await embedding_service.create(obj=obj)
+            except Exception as e:
+                print(f"Failed to insert embedding: {e}")
+
+    @staticmethod
+    async def create(*, file: UploadFile, obj: CreateNoteSourceParam) -> NoteSource:
+        with TemporaryDirectory() as temp_dir:
+            temp_file_path = os.path.join(temp_dir, file.filename)
+
+            content = await file.read()
+            with open(temp_file_path, 'wb') as tmp_file:
+                tmp_file.write(content)
+
+            local_file_reader = DocumentReader()
+            read_result = local_file_reader.read(temp_dir)
+            obj.content = read_result[0].raw_content
+
+            text_file_chunker = TextFileChunker()
+            chunk_result = text_file_chunker.chunk(read_result)
+
+            embeder = OpenAIEmbedding(settings.OPENAI_KEY, settings.OPENAI_BASE_URL, "text-embedding-3-small")
+            chunk_embedder = ChunkEmbedder(embeder)
+            embed_result = chunk_embedder.embed(chunk_result)
+
+            async with async_db_session.begin() as db:
+                source = await note_source_dao.get_by_uuid(db, obj.uuid)
+                if source:
+                    raise errors.ForbiddenError(msg='来源已存在')
+                note_source = await note_source_dao.create(db, obj)
+
+            # 插入 embeddings，使用单独事务减少锁等待超时问题
+            await NoteSourceService.insert_embeddings(db, note_source.id, embed_result)
+
+            return note_source
 
     @staticmethod
     async def update(*, pk: int, obj: UpdateNoteSourceParam) -> int:

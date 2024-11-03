@@ -1,5 +1,5 @@
 import React, {ReactNode, useEffect, useState} from 'react';
-import {Layout, Menu, Image, Button, Drawer, Checkbox, Modal, message} from 'antd';
+import {Layout, Menu, Image, Button, Drawer, Checkbox, Modal, message, Input} from 'antd';
 import { DeleteOutlined, FileSearchOutlined, PlusSquareOutlined, FilePdfOutlined, FileWordOutlined, LinkOutlined } from '@ant-design/icons';
 import CustomHeader from "../customHeader";
 import {Outlet, useNavigate} from 'react-router-dom';
@@ -143,7 +143,12 @@ const LayoutContainer: React.FC<{ children?: ReactNode }> = ({ children }) => {
                 open={isFileContentVisible}
                 width='500px'
             >
-                <p dangerouslySetInnerHTML={{ __html: selectedFile?.content || "" }} />
+                <Input.TextArea
+                    value={selectedFile?.content || ''}
+                    style={{height:'100%'}}
+                    readOnly={true}
+                    variant={"filled"}
+                />
             </Drawer>
             <AddFileModal
                 onCancel={() => setIsAddFileModalVisible(false)}

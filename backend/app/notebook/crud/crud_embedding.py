@@ -1,4 +1,5 @@
-from typing import Sequence
+import uuid
+from typing import Sequence, List
 from sqlalchemy import Select, desc, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy_crud_plus import CRUDPlus
@@ -39,6 +40,7 @@ class CRUDEmbedding(CRUDPlus[Embedding]):
         stmt = select(self.model).options(selectinload(self.model.note_source)).order_by(desc(self.model.created_time))
         embeddings = await db.execute(stmt)
         return embeddings.scalars().all()
+
 
     async def get_list(self, source_id: int = None, content: str = None) -> Select:
         """

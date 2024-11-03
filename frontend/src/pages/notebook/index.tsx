@@ -7,11 +7,12 @@ import Conservation from '../../components/conservation';
 import NoteAssistant from '../../components/noteAssistant';
 import { useDispatchNotebook, useNotebookSelector, useDispatchNote } from '../../hooks';
 import { NoteReq } from '../../api/note';
-import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import {ClientChatController} from "../../service/websocketService.ts";
-import remarkGfm from "remark-gfm";
-import ReactMarkdown from "react-markdown";
+import {marked} from "marked";
+import 'react-markdown-editor-lite/lib/index.css';
+import ReactMarkdown from 'react-markdown';
+import MdEditor from 'react-markdown-editor-lite';
 
 interface Message {
     role: 'user' | 'assistant' | 'progress' | 'error';
@@ -34,23 +35,7 @@ const NotebookPage: React.FC = () => {
     const selectSource = useNotebookSelector((state) => state.notebook.selectSource);
     const [inputValue, setInputValue] = useState<string>('');
     const [messages, setMessages] = useState<Message[]>([]);
-    const [clientController, setClientController] = useState<ClientChatController | null>(null);
 
-    useEffect(() => {
-        if(selectSource.length ==0)
-            return;
-        const controller = new ClientChatController(
-            setMessages,
-            selectSource,
-            Array.from(selectedNotes)
-        );
-
-        setClientController(controller);
-
-        return () => {
-            controller.close();
-        };
-    }, [selectSource]);
 
     useEffect(() => {
         if (uuid) {
@@ -132,22 +117,32 @@ const NotebookPage: React.FC = () => {
         }
     };
 
-    const handleSendMessage = () => {
-        if (inputValue.trim() === '') return;
+    // Handle sending a message to the WebSocket server
+    const handleSendMessage = (value: string | null = null) => {
+        // Ensure either `value` or `inputValue` has content, and `selectSource` is not empty
+        if ((value === null || value.trim() === '') && inputValue.trim() === '') return;
+        if (selectSource.length === 0 || selectedNotes.size === 0) return;
 
-        const userMessage: Message = { role: 'user', content: inputValue };
+        // Create the user message
+        const userMessage: Message = { role: 'user', content: value || inputValue };
         const query = [...messages, userMessage];
+
+        new ClientChatController(
+            query,
+            setMessages,
+            selectSource,
+            Array.from(selectedNotes)
+        );
+
         setMessages((prevMessages) => [...prevMessages, userMessage]);
-        clientController?.sendMessage(query);
+
 
         setInputValue('');
     };
 
+
     const handleSuggestionClick = (inputValue: string) => {
-        const userMessage: Message = { role: 'user', content: inputValue };
-        const query = [...messages, userMessage];
-        setMessages((prevMessages) => [...prevMessages, userMessage]);
-        clientController?.sendMessage(query);
+        handleSendMessage(inputValue)
     };
 
     const handleNoteMerge = async () => {
@@ -174,40 +169,49 @@ const NotebookPage: React.FC = () => {
         setMessages([])
     };
 
+    const handleEditorChange = ({ text }: { text: string }) => {
+        setCurrentNoteContent(text);
+    };
+
+
     return (
         <LayoutContainer>
-            <div style={{ position: 'relative', height: '100%', padding: '16px 10px 0 5px'}}>
-                <div style={{ marginBottom: '16px' }}>
-                    <Button type="text" icon={<FileOutlined />} onClick={handleNoteAdd}>添加笔记</Button>
-                    {selectedNotes.size !== 0 && <Button type="text" icon={<DeleteOutlined />} onClick={handleDeleteNotes}>删除笔记</Button>}
-                    <Button type="text" icon={<CheckOutlined />} onClick={handleSelectAllNote}>全选</Button>
-                    {selectedNotes.size !== 0 && <Button type="text" icon={<CloseOutlined />} onClick={handleSelectNoteCancel}>全部取消选择</Button>}
+            <div style={{position: 'relative', height: '100%', padding: '16px 10px 0 5px'}}>
+                <div style={{marginBottom: '16px'}}>
+                    <Button type="text" icon={<FileOutlined/>} onClick={handleNoteAdd}>添加笔记</Button>
+                    {selectedNotes.size !== 0 &&
+                        <Button type="text" icon={<DeleteOutlined/>} onClick={handleDeleteNotes}>删除笔记</Button>}
+                    <Button type="text" icon={<CheckOutlined/>} onClick={handleSelectAllNote}>全选</Button>
+                    {selectedNotes.size !== 0 && <Button type="text" icon={<CloseOutlined/>}
+                                                         onClick={handleSelectNoteCancel}>全部取消选择</Button>}
                 </div>
-                <div style={{ padding: '10px', height: 'calc(100% - 50px)', overflow: 'auto', paddingBottom: '90px'}}>
+                <div style={{padding: '10px', height: 'calc(100% - 50px)', overflow: 'auto', paddingBottom: '140px'}}>
                     {notebook && (
                         <List
-                            grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 3, xl: 4, xxl: 4 }}
+                            grid={{gutter: 16, xs: 1, sm: 1, md: 2, lg: 3, xl: 4, xxl: 4}}
                             dataSource={notebook.notes}
                             renderItem={item => (
                                 <List.Item>
-                                    <div style={{ width: '100%', position: 'relative' }}>
+                                    <div style={{width: '100%', position: 'relative'}}>
                                         <Card
                                             size="small"
-                                            style={{ height: '300px', backgroundColor: 'floralwhite'}}
+                                            style={{height: '300px', backgroundColor: 'floralwhite'}}
                                             hoverable={true}
-                                            title={<div><FileOutlined style={{ paddingRight: '10px' }} />{item.type === 'remark' ? '书面备注' : '已保存的回答'}</div>}
+                                            title={<div><FileOutlined
+                                                style={{paddingRight: '10px'}}/>{item.type === 'remark' ? '书面备注' : '已保存的回答'}
+                                            </div>}
                                             extra={<Checkbox
                                                 checked={selectedNotes.has(item.id)}
                                                 onChange={() => handleSelectNote(item.id)}
                                             />}
                                         >
-                                            <div style={{ height: '240px', overflowY: 'hidden'}} onClick={() => handleCardClick(item.id, item.content || '')}>
-                                                <ReactMarkdown
-                                                    children={item.content}
-                                                    remarkPlugins={[remarkGfm]}
-                                                    components={{
-                                                        p: ({children }) => <p style={{ marginBottom: '10px' }}>{children}</p>,
+                                            <div style={{height: '240px', overflowY: 'hidden'}}
+                                                 onClick={() => handleCardClick(item.id, item.content || '')}>
+                                                <div
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: marked(item.content || ''),
                                                     }}
+                                                    style={{marginBottom: '10px'}}
                                                 />
                                             </div>
                                         </Card>
@@ -231,10 +235,23 @@ const NotebookPage: React.FC = () => {
                     alignItems: 'center',
                     backgroundColor: isConservationVisible ? 'whitesmoke' : ''
                 }}>
-                    <div style={{ width: '100%', textAlign: 'center', maxWidth: '900px', display: isNoteAssistantVisible ? 'block' : 'none' , height: "calc( 100% - 100px )"}}>
-                        <NoteAssistant />
+                    <div style={{
+                        width: '100%',
+                        textAlign: 'center',
+                        maxWidth: '900px',
+                        display: isNoteAssistantVisible ? 'block' : 'none',
+                        height: "calc( 100% - 100px )"
+                    }}>
+                        <NoteAssistant/>
                     </div>
-                    <div style={{ width: '100%', textAlign: 'center', maxWidth: '900px', display: isConservationVisible ? 'block' : 'none', flexGrow: 1, overflowY: 'hidden'}}>
+                    <div style={{
+                        width: '100%',
+                        textAlign: 'center',
+                        maxWidth: '900px',
+                        display: isConservationVisible ? 'block' : 'none',
+                        flexGrow: 1,
+                        overflowY: 'hidden'
+                    }}>
                         <Conservation messages={messages}/>
                     </div>
 
@@ -247,15 +264,20 @@ const NotebookPage: React.FC = () => {
                             borderRadius: '10px 10px 0 0',
                             maxWidth: '900px',
                             width: '100%',
-                            padding: '20px',
+                            padding: '30px',
                         }}
                     >
                         {selectedNotes.size !== 0 && <div style={{paddingBottom: '10px'}}>
-                            <Button style={{marginRight: "10px"}} onClick={() => handleSuggestionClick("帮我理解")}>帮我理解</Button>
-                            <Button style={{marginRight: "10px"}} onClick={() => handleSuggestionClick("评论")}>评论</Button>
-                            <Button style={{marginRight: "10px"}} onClick={() => handleSuggestionClick("推荐相关想法")}>推荐相关想法</Button>
-                            <Button style={{marginRight: "10px"}} onClick={() => handleSuggestionClick("创建大纲")}>创建大纲</Button>
-                            {selectedNotes.size >= 2 && <Button style={{marginRight: "10px"}} onClick={handleNoteMerge}>合并到笔记</Button>}
+                            <Button style={{marginRight: "10px"}}
+                                    onClick={() => handleSuggestionClick("帮我理解")}>帮我理解</Button>
+                            <Button style={{marginRight: "10px"}}
+                                    onClick={() => handleSuggestionClick("评论")}>评论</Button>
+                            <Button style={{marginRight: "10px"}}
+                                    onClick={() => handleSuggestionClick("推荐相关想法")}>推荐相关想法</Button>
+                            <Button style={{marginRight: "10px"}}
+                                    onClick={() => handleSuggestionClick("创建大纲")}>创建大纲</Button>
+                            {selectedNotes.size >= 2 &&
+                                <Button style={{marginRight: "10px"}} onClick={handleNoteMerge}>合并到笔记</Button>}
                         </div>}
                         <div
                             style={{
@@ -264,7 +286,8 @@ const NotebookPage: React.FC = () => {
                                 justifyContent: 'center',
                             }}
                         >
-                            <Button type="text" icon={<BookOutlined />} onClick={() => toggleModal('conservation')}>查看聊天</Button>
+                            <Button type="text" icon={<BookOutlined/>}
+                                    onClick={() => toggleModal('conservation')}>{!isConservationVisible ? '查看聊天' : '关闭聊天'}</Button>
                             <div
                                 style={{
                                     width: '100%',
@@ -277,20 +300,21 @@ const NotebookPage: React.FC = () => {
                                     backgroundColor: '#E3E8EE'
                                 }}
                             >
-                                <div style={{ width: '100px' }}> {selectedNotes.size === 0 ? `${selectSource.length} 个来源` : `${selectedNotes.size} 条备注`}</div>
+                                <div
+                                    style={{width: '100px'}}> {selectedNotes.size === 0 ? `${selectSource.length} 个来源` : `${selectedNotes.size} 条备注`}</div>
 
                                 <Input.TextArea
                                     placeholder="输入笔记..."
-                                    autoSize={{ minRows: 1, maxRows: 8 }}
-                                    style={{ width: '100%', height: '80px' }}
+                                    autoSize={{minRows: 1, maxRows: 8}}
+                                    style={{width: '100%', height: '80px'}}
                                     variant={"borderless"}
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
                                 />
-                                <Button type="text" size="large" icon={<SendOutlined />} onClick={handleSendMessage} />
+                                <Button type="text" size="large" icon={<SendOutlined/>} onClick={() => handleSendMessage()}/>
                             </div>
                             {/*<Button type="text" icon={<CompassOutlined />} onClick={() => toggleModal('notebook')}>笔记本助手</Button>*/}
-                            <Button type="text" icon={<ClearOutlined />} onClick={handleChatClear}>清空对话</Button>
+                            <Button type="text" icon={<ClearOutlined/>} onClick={handleChatClear}>清空对话</Button>
                         </div>
                     </div>
                 </div>
@@ -303,8 +327,14 @@ const NotebookPage: React.FC = () => {
                 onCancel={() => setIsModalOpen(false)}
                 okText="更新"
                 cancelText="取消"
+                width={'80%'}
             >
-                <ReactQuill theme="snow" value={currentNoteContent} onChange={setCurrentNoteContent} />
+                <MdEditor
+                    style={{ height: '65vh' }}
+                    value={currentNoteContent}
+                    onChange={handleEditorChange}
+                    renderHTML={(text: string) => <ReactMarkdown>{text}</ReactMarkdown>}
+                />
             </Modal>
 
         </LayoutContainer>
