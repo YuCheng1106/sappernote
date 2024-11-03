@@ -69,7 +69,7 @@ const LayoutContainer: React.FC<{ children?: ReactNode }> = ({ children }) => {
             setSelectedSources(new Set(allSourceIds));
             modifyNotebookSourcesSelect(allSourceIds);
         }
-    }, [notebook, modifyNotebookSourcesSelect]);
+    }, [notebook?.source, modifyNotebookSourcesSelect]);
 
     useEffect(() => {
         const selectedSourcesIds = Array.from(selectedSources);

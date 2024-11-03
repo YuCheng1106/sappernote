@@ -121,7 +121,7 @@ const NotebookPage: React.FC = () => {
     const handleSendMessage = (value: string | null = null) => {
         // Ensure either `value` or `inputValue` has content, and `selectSource` is not empty
         if ((value === null || value.trim() === '') && inputValue.trim() === '') return;
-        if (selectSource.length === 0 || selectedNotes.size === 0) return;
+        if (selectSource.length === 0 && selectedNotes.size === 0) return;
 
         // Create the user message
         const userMessage: Message = { role: 'user', content: value || inputValue };
