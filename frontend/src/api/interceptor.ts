@@ -1,7 +1,7 @@
 import type {AxiosResponse, InternalAxiosRequestConfig} from 'axios';
 import axios from 'axios';
 import { message } from 'antd';
-// import { getToken } from '../utils/auth';
+import { getToken } from '../utils/auth';
 
 export interface HttpResponse<T = never> {
     msg: string;
@@ -27,7 +27,7 @@ const showError = (mes: string) => {
 // 请求拦截器
 axios.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        const token = "getToken();"
+        const token = getToken();
         if (token) {
             // 使用 set 方法来设置 Authorization 头部
             config.headers.set('Authorization', `Bearer ${token}`);

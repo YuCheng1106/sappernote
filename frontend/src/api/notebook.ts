@@ -2,8 +2,6 @@ import axios from './interceptor.ts';
 import qs from 'query-string';
 
 export interface NotebookReq {
-    user_uuid: string;
-    uuid: string;
     title: string;
     content?: string;
     active?: boolean;
@@ -72,8 +70,8 @@ export function queryNotebookAll(): Promise<NotebookRes[]> {
 }
 
 // 获取指定用户的所有笔记本
-export function queryNotebookAllByUser(user_uuid: string): Promise<NotebookRes[]> {
-    return axios.get(`/api/v1/notebook/user/${user_uuid}/all`);
+export function queryNotebookAllByUser(): Promise<NotebookRes[]> {
+    return axios.get(`/api/v1/notebook/user/all`);
 }
 
 // 获取笔记本详情

@@ -1,0 +1,141 @@
+.mainContainer {
+  display: flex;
+  width: 85vw;
+  height: 80vh;
+  background-color: #ffffff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.leftContainer,
+.rightContainer {
+  padding: 20px;
+  border: 1px solid #ccc;
+  overflow-y: auto;
+}
+
+.leftContainer {
+  width: 60%;
+  border-right: none;
+  height: 100%;
+}
+
+.rightContainer {
+  width: 40%;
+  background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+h1 {
+  font-size: 24px;
+  color: #333333;
+  margin-bottom: 20px;
+}
+
+.resultItem {
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.resultItem p {
+  margin: 5px 0;
+}
+
+.resultItem strong {
+  color: #4285f4;
+}
+
+.backButton {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: #4285f4;
+  font-size: 16px;
+  transition: color 0.3s ease;
+}
+
+.backButton:hover {
+  color: #3367d6;
+}
+
+.backButton svg {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+}
+
+.chatContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #fff;
+  padding: 10px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  max-height: calc(100% - 110px);
+}
+
+.chatInput {
+  display: flex;
+  margin-top: 10px;
+}
+
+.chatInput textarea {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-right: 10px;
+  resize: none;
+  height: 40px;
+}
+
+.chatInput textarea:focus {
+  border-color: #4285f4; /* 聚焦时边框颜色变化 */
+  outline: none; /* 去掉默认轮廓 */
+}
+
+.chatInput button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #4285f4;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.chatInput button:hover {
+  background-color: #3367d6; /* 悬停时的颜色变化 */
+}
+
+.chatMessage {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 5px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.chatMessage.user {
+  background-color: #e1f5fe;
+  align-self: flex-end;
+  border: 1px solid #b3e5fc; /* 增加边框 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 增加阴影效果 */
+}
+
+.chatMessage.bot {
+  background-color: #fff9c4;
+  align-self: flex-start;
+  border: 1px solid #fff176; /* 增加边框 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 增加阴影效果 */
+}

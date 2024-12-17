@@ -7,7 +7,7 @@ import {
 } from '../service/userService.ts';
 import { setToken, clearToken } from '../utils/auth';
 import {UserState} from "../types/user.ts";
-import {AnnouncementRes} from "../types/announcement.ts";
+import {UserInfo} from "../types/user.ts";
 
 const initialState: UserState = {
     user: {
@@ -38,7 +38,7 @@ const userSlice = createSlice({
             state.error = null;
         },
         // Set partial announcement information
-        setUserInfo: (state, action: PayloadAction<Partial<AnnouncementRes>>) => {
+        setUserInfo: (state, action: PayloadAction<Partial<UserInfo>>) => {
             if (state.user) {
                 state.user = { ...state.user, ...action.payload };
             }

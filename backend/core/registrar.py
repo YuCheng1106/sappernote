@@ -9,12 +9,13 @@ from fastapi_pagination import add_pagination
 from starlette.middleware.authentication import AuthenticationMiddleware
 
 from backend.app.router import route
+# from backend.app.worklog.service.utils import initialize_model
 from backend.common.exception.exception_handler import register_exception
 from backend.common.log import set_customize_logfile, setup_logging
 from backend.core.conf import settings
 from backend.core.path_conf import STATIC_DIR
-# from backend.database.db_mysql import create_table
-# from backend.database.db_redis import redis_client
+from backend.database.db_mysql import create_table
+from backend.database.db_redis import redis_client
 from backend.middleware.jwt_auth_middleware import JwtAuthMiddleware
 from backend.middleware.opera_log_middleware import OperaLogMiddleware
 from backend.middleware.state_middleware import StateMiddleware
@@ -25,35 +26,30 @@ from backend.utils.serializers import MsgSpecJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
-async def register_init(app: FastAPI) -> object:
+async def register_init(app: FastAPI):
     """
     启动初始化
 
     :return:
     """
-    print("Starting up...")
-    yield
-    # 执行一些清理操作
-    print("Shutting down...")
-
     # # 创建数据库表
     # print("Initializing model on startup...\n")
     # await initialize_model()
     # print("Model initialized on startup.\n")
-    # await create_table()
-    # # 连接 redis
-    # await redis_client.open()
-    # # 初始化 limiter
-    # await FastAPILimiter.init(
-    #     redis=redis_client, prefix=settings.REQUEST_LIMITER_REDIS_PREFIX, http_callback=http_limit_callback
-    # )
-    #
-    # yield
-    #
-    # # 关闭 redis 连接
-    # await redis_client.close()
-    # # 关闭 limiter
-    # await FastAPILimiter.close()
+    await create_table()
+    # 连接 redis
+    await redis_client.open()
+    # 初始化 limiter
+    await FastAPILimiter.init(
+        redis=redis_client, prefix=settings.REQUEST_LIMITER_REDIS_PREFIX, http_callback=http_limit_callback
+    )
+
+    yield
+
+    # 关闭 redis 连接
+    await redis_client.close()
+    # 关闭 limiter
+    await FastAPILimiter.close()
 
 
 
@@ -86,22 +82,22 @@ def register_app():
     )
 
     # 日志
-    # register_logger()
+    register_logger()
 
     # 静态文件
     register_static_file(app)
 
     # 中间件
-    # register_middleware(app)
+    register_middleware(app)
 
     # 路由
     register_router(app)
 
     # 分页
-    # register_page(app)
+    register_page(app)
 
     # 全局异常处理
-    # register_exception(app)
+    register_exception(app)
 
     return app
 

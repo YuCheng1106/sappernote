@@ -2,14 +2,13 @@ import { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { useSelector, TypedUseSelectorHook } from 'react-redux';
 import {
-    fetchAllNotebooks,
     fetchNotebookList,
     fetchNotebookDetail,
     fetchNotebookDetailByUuid,
     createNewNotebook,
     updateNotebooks,
     deleteNotebooks,
-    updateNotebookSources
+    updateNotebookSources, fetchNotebooksByUser
 } from '../service/notebookService.ts';
 import { RootState } from '../store';
 
@@ -23,7 +22,7 @@ export function useDispatchNotebook() {
 
     // 获取所有 Notebook
     const getAllNotebooks = useCallback(() => {
-        return dispatch(fetchAllNotebooks());
+        return dispatch(fetchNotebooksByUser());
     }, [dispatch]);
 
     // 获取 Notebook 列表

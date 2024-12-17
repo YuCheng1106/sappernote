@@ -42,7 +42,7 @@ function LoginPage() {
             .then(() => {
                 fetchUser().unwrap().then(() => {
                     message.success('登录成功');
-                    navigate('/admin/announcements'); // 登录成功后跳转首页
+                    navigate('/playground');
                 });
             })
             .catch((error) => {

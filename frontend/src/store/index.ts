@@ -4,11 +4,11 @@ import { combineReducers } from 'redux';
 import notebookReducer from './notebookSlice';
 import noteSlice from "./noteSlice";
 import notesourceSlice from "./notesourceSlice";
-// import userReducer from './userSlice.ts';
+import userReducer from './userSlice.ts';
 
 
 const rootReducer = combineReducers({
-    // user: userReducer,
+    user: userReducer,
     notebook: notebookReducer,
     note: noteSlice,
     notesource: notesourceSlice,

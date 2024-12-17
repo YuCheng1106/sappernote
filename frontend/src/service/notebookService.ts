@@ -35,9 +35,9 @@ export const fetchAllNotebooks = createAsyncThunk(
 // 获取指定用户的所有笔记本
 export const fetchNotebooksByUser = createAsyncThunk(
     'notebook/fetchNotebooksByUser',
-    async (userUuid: string, { rejectWithValue }) => {
+    async (_, { rejectWithValue }) => {
         try {
-            return await queryNotebookAllByUser(userUuid);
+            return await queryNotebookAllByUser();
         } catch (error: unknown) {
             if (typeof error === 'object' && error !== null && 'response' in error) {
                 const err = error as { response: { data?: never } };
@@ -164,7 +164,8 @@ export const deleteNotebooks = createAsyncThunk(
     'notebook/deleteNotebooks',
     async (params: NotebookDeleteParams, { rejectWithValue }) => {
         try {
-            return await deleteNotebook(params);
+            await deleteNotebook(params);
+            return params.pk
         } catch (error: unknown) {
             if (typeof error === 'object' && error !== null && 'response' in error) {
                 const err = error as { response: { data?: never } };

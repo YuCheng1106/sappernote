@@ -10,18 +10,18 @@ class StateMiddleware(BaseHTTPMiddleware):
     """请求 state 中间件"""
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        # ip_info = await parse_ip_info(request)
-        # ua_info = parse_user_agent_info(request)
+        ip_info = await parse_ip_info(request)
+        ua_info = parse_user_agent_info(request)
 
         # 设置附加请求信息
-        # request.state.ip = ip_info.ip
-        # request.state.country = ip_info.country
-        # request.state.region = ip_info.region
-        # request.state.city = ip_info.city
-        # request.state.user_agent = ua_info.user_agent
-        # request.state.os = ua_info.os
-        # request.state.browser = ua_info.browser
-        # request.state.device = ua_info.device
+        request.state.ip = ip_info.ip
+        request.state.country = ip_info.country
+        request.state.region = ip_info.region
+        request.state.city = ip_info.city
+        request.state.user_agent = ua_info.user_agent
+        request.state.os = ua_info.os
+        request.state.browser = ua_info.browser
+        request.state.device = ua_info.device
 
         response = await call_next(request)
 

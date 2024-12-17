@@ -99,7 +99,7 @@ const LayoutContainer: React.FC<{ children?: ReactNode }> = ({ children }) => {
             <Sider collapsible collapsed={collapsed} onCollapse={onCollapse} theme="light">
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '64px'}} onClick={() => navigate("/playground")}>
                     <Image src={logoImage} preview={false} width="50px" />
-                    {!collapsed && <span style={{ marginLeft: 10 }}>NotebookSapper</span>}
+                    {!collapsed && <span style={{ marginLeft: 10 }}>智慧纪检</span>}
                 </div>
                 <div style={{ display: !collapsed ? 'flex' : 'none', justifyContent: 'space-between', alignItems: 'center', padding: "0px 20px" }}>
                     <span>来源</span>

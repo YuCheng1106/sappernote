@@ -6,8 +6,13 @@ import uvicorn
 
 from backend.core.registrar import register_app
 
+# from backend.app.worklog.service.utils import initialize_model
 app = register_app()
 
+# @app.on_event("startup")
+# async def startup():
+#     """在应用程序启动时加载模型"""
+#     await initialize_model()
 
 if __name__ == '__main__':
     # 如果你喜欢在 IDE 中进行 DEBUG，main 启动方法会很有帮助

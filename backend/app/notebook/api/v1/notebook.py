@@ -25,9 +25,9 @@ async def get_all_notebooks() -> ResponseModel:
     return response_base.success(data=data)
 
 
-@router.get('/user/{user_uuid}/all', summary='获取用户所有笔记本', dependencies=[DependsJwtAuth])
-async def get_user_all_notebooks(user_uuid: Annotated[str, Path(...)]) -> ResponseModel:
-    notebooks = await notebook_service.get_user_notebooks(user_uuid=user_uuid)
+@router.get('/user/all', summary='获取用户所有笔记本', dependencies=[DependsJwtAuth])
+async def get_user_all_notebooks(request: Request,) -> ResponseModel:
+    notebooks = await notebook_service.get_user_notebooks(user_uuid=request.user.uuid)
     data = select_list_serialize(notebooks)
     return response_base.success(data=data)
 
@@ -46,11 +46,12 @@ async def get_notebook_by_uuid(uuid: Annotated[str, Path(...)]) -> ResponseModel
     return response_base.success(data=data)
 
 
+
 @router.get(
     '',
     summary='（模糊条件）分页获取所有笔记本',
     dependencies=[
-    #     DependsJwtAuth,
+        DependsJwtAuth,
         DependsPagination,
     ],
 )
@@ -68,15 +69,16 @@ async def get_pagination_notebooks(
     '',
     summary='创建笔记本',
     dependencies=[
-        # DependsJwtAuth,
+        DependsJwtAuth,
     ],
 )
 async def create_notebook(
-        title: str = Body(..., embed=True, description="笔记本名字"),
+    request: Request,
+    title: str = Body(..., embed=True, description="笔记本名字"),
 ) -> ResponseModel:
     obj = CreateNotebookParam(
-        user_uuid="asasa",
-        uuid=str(uuid.uuid4()),  # 生成一个 UUID
+        user_uuid=request.user.uuid,
+        uuid=str(uuid.uuid4()),
         title=title,
         active=True
     )
